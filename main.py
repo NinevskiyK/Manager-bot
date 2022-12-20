@@ -2,12 +2,16 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot import types
 from datetime import datetime, timedelta
 import asyncio
+import configparser
 
 """
 !!!!Надо обязательно сделать /start в группе!!!!
 """
-TOKEN = ''
-bot = AsyncTeleBot(TOKEN)
+
+config = configparser.ConfigParser()
+config.read("config.ini")
+token = config["BOT"]["token"]
+bot = AsyncTeleBot(token)
 chat_id = -1
 banned = {}
 
