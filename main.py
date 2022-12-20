@@ -1,34 +1,35 @@
-import telebot
+from telebot.async_telebot import AsyncTeleBot
 from telebot import types
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, timedelta
+import asyncio
 
 """
 !!!!Надо обязательно сделать /start в группе!!!!
 """
 TOKEN = ''
-bot = telebot.TeleBot(TOKEN)
+bot = AsyncTeleBot(TOKEN)
 chat_id = -1
 banned = {}
 
 
-def something_wrong(id=chat_id):
+async def something_wrong(id=chat_id):
     try:
-        bot.send_message(id, 'Что то пошло не так....')
+        await bot.send_message(id, 'Что то пошло не так....')
     except:
         print('Не братишка вот тут ты не прав конкретно')
 
 
 @bot.message_handler(content_types=['new_chat_members'])
-def handler_new_member(message):
+async def handler_new_member(message):
     try:
         username = message.new_chat_members[0].username
-        bot.send_message(message.chat.id, "@{}, сколько. ты. зарабатываешь?".format(username))
-        bot.send_photo(message.chat.id, "https://s4.cdn.eg.ru/wp-content/uploads/2020/01/22015723.jpg")
+        await bot.send_message(message.chat.id, "@{}, сколько. ты. зарабатываешь?".format(username))
+        await bot.send_photo(message.chat.id, "https://s4.cdn.eg.ru/wp-content/uploads/2020/01/22015723.jpg")
     except:
-        something_wrong(message.chat.id)
+        await something_wrong(message.chat.id)
 
 
-def get_ban_markup(asked, to_ban, to_ban_username):
+async def get_ban_markup(asked, to_ban, to_ban_username):
     try:
         ban_markup = types.InlineKeyboardMarkup()
         to_end = str(asked) + '|' + str(to_ban) + '|' + str(to_ban_username)
@@ -43,75 +44,75 @@ def get_ban_markup(asked, to_ban, to_ban_username):
         ban_markup.row(forever)
         return ban_markup
     except:
-        something_wrong()
+        await something_wrong()
 
 
-def ban(id_, username, col, what):
+async def ban(id_, username, col, what):
     try:
         d = {str(what): int(col)}
         tm = datetime.now() + timedelta(**d)
         banned[username] = id_
-        return bot.ban_chat_member(chat_id, id_, int(tm.timestamp()))
+        return await bot.ban_chat_member(chat_id, id_, int(tm.timestamp()))
     except:
-        something_wrong()
+        await something_wrong()
 
 
-def unban(id_):
+async def unban(id_):
     try:
         if chat_id != -1:
-            bot.unban_chat_member(chat_id, id_, True)
+            await bot.unban_chat_member(chat_id, id_, True)
     except:
-        something_wrong()
+        await something_wrong()
 
 
 @bot.callback_query_handler(func=lambda c: True)
-def proccess_banning(message):
+async def proccess_banning(message):
     try:
         splitted = message.data.split('|')
         person_asked = splitted[2]
         if person_asked != str(message.from_user.id):
-            bot.answer_callback_query(callback_query_id=message.id, text='Не ты же просил, не надо жать!')
+            await bot.answer_callback_query(callback_query_id=message.id, text='Не ты же просил, не надо жать!')
         else:
-            bot.edit_message_reply_markup(message.message.chat.id, message.message.message_id, reply_markup=None)
-            if ban(splitted[3], splitted[4], splitted[1], splitted[0]):
-                bot.send_message(message.message.chat.id,
+            await bot.edit_message_reply_markup(message.message.chat.id, message.message.message_id, reply_markup=None)
+            if await ban(splitted[3], splitted[4], splitted[1], splitted[0]):
+                await bot.send_message(message.message.chat.id,
                                  '@{} ушел в бан на {} {}'.format(splitted[4], splitted[1], splitted[0]))
             else:
-                bot.send_message(message.message.chat.id, 'Что то пошло не так')
+                await bot.send_message(message.message.chat.id, 'Что то пошло не так')
     except:
-        something_wrong(message.chat.id)
+        await something_wrong(message.chat.id)
 
 
 @bot.message_handler(commands=['leave_pls'])
-def goodbye(message):
+async def goodbye(message):
     try:
         if check_if_person_admin(message.from_user.id):
             global chat_id
-            bot.send_message(message.chat.id, 'Эх ну и оставайтесь в гордом одиночестве!')
+            await bot.send_message(message.chat.id, 'Эх ну и оставайтесь в гордом одиночестве!')
             chat_id = -1
-            bot.leave_chat(message.chat.id)
+            await bot.leave_chat(message.chat.id)
     except:
-        something_wrong(message.chat.id)
+        await something_wrong(message.chat.id)
 
 
 @bot.message_handler(commands=['statistics'])
-def statistics(message):
+async def statistics(message):
     try:
-        members = bot.get_chat_member_count(message.chat.id)
-        admins = len(bot.get_chat_administrators(message.chat.id))
-        bot.send_message(message.chat.id, "Всего тут {} участников и {} админов".format(members, admins))
+        members = await bot.get_chat_member_count(message.chat.id)
+        admins = len(await bot.get_chat_administrators(message.chat.id))
+        await bot.send_message(message.chat.id, "Всего тут {} участников и {} админов".format(members, admins))
     except:
-        something_wrong(message.chat.id)
+        await something_wrong(message.chat.id)
 
 
 @bot.message_handler(commands=['start'])
-def hello(message):
+async def hello(message):
     try:
         global chat_id
         if chat_id != -1:
-            bot.send_message(chat_id, 'Меня позвали в другом чатике, я пошел!')
+            await bot.send_message(chat_id, 'Меня позвали в другом чатике, я пошел!')
         chat_id = message.chat.id
-        bot.send_message(message.chat.id, 'Привет! Теперь я работаю в этом чатике.'
+        await bot.send_message(message.chat.id, 'Привет! Теперь я работаю в этом чатике.'
                                           ' Чтобы я работал в другом, вызови там /start\n'
                          'Я помогу тебе администрировать группы. Только дай мне админские права!\n'
                          'Чтобы забанить, сделать админом или антиадмином человека, вызови /ban, /to_admin,'
@@ -120,116 +121,116 @@ def hello(message):
                          'Также /statistics и /leave_pls дают статистику или просят бота уйти.\n'
                          'А еще он приветствует всех зашедших людей(по своему)!')
     except:
-        something_wrong(message.chat.id)
+        await something_wrong(message.chat.id)
 
 
-def check_if_person_admin(id_, send_something=True):
+async def check_if_person_admin(id_, send_something=True):
     try:
         if chat_id == -1:
             return False
-        user = bot.get_chat_member(chat_id, id_)
+        user = await bot.get_chat_member(chat_id, id_)
         if user.status == 'creator':
             if send_something:
-                bot.send_message(chat_id, 'Прячтесь люди! Создатель чата пришел!')
+                await bot.send_message(chat_id, 'Прячтесь люди! Создатель чата пришел!')
             return True
         if user.status in ['administrator', 'creator']:
             if send_something:
-                bot.send_message(chat_id, 'Ща сделаем')
+                await bot.send_message(chat_id, 'Ща сделаем')
             return True
         elif user.status == 'member':
             if send_something:
-                bot.send_message(chat_id, 'Ну и куда ты? Мемберам нельзя!')
+                await bot.send_message(chat_id, 'Ну и куда ты? Мемберам нельзя!')
             return False
         else:
             if send_something:
-                bot.send_message(chat_id, 'Не понял, кто ты. Не могу выполнить функцию!')
+                await bot.send_message(chat_id, 'Не понял, кто ты. Не могу выполнить функцию!')
             return False
     except:
-        something_wrong()
+        await something_wrong()
 
 
 @bot.message_handler(commands=['to_admin'])
-def query_text(message):
+async def query_text(message):
     try:
-        if check_if_person_admin(message.from_user.id):
+        if await check_if_person_admin(message.from_user.id):
             if message.reply_to_message is None:
-                bot.send_message(message.chat.id, 'Вызови реплай на того человека, которого ты хочешь сделать админом')
+                await bot.send_message(message.chat.id, 'Вызови реплай на того человека, которого ты хочешь сделать админом')
                 return
             user_to_admin_id = message.reply_to_message.from_user.id
-            user_to_admin = bot.get_chat_member(message.chat.id, user_to_admin_id)
+            user_to_admin = await bot.get_chat_member(message.chat.id, user_to_admin_id)
             if user_to_admin.status in ['administrator', 'creator']:
-                bot.send_message(message.chat.id, 'Он уже админ!')
+                await bot.send_message(message.chat.id, 'Он уже админ!')
             elif user_to_admin.status in ['member', 'restricted']:
-                bot.promote_chat_member(message.chat.id, user_to_admin_id, *[True] * 8, False, *[True] * 3)
-                bot.send_message(message.chat.id, 'Привет админ!')
+                await bot.promote_chat_member(message.chat.id, user_to_admin_id, *[True] * 8, False, *[True] * 3)
+                await bot.send_message(message.chat.id, 'Привет админ!')
             else:
-                bot.send_message(message.chat.id, 'Либо он забанен, либо вышел, либо ты просишь что то незаконное!')
+                await bot.send_message(message.chat.id, 'Либо он забанен, либо вышел, либо ты просишь что то незаконное!')
     except:
-        something_wrong(message.chat.id)
+        await something_wrong(message.chat.id)
 
 
 @bot.message_handler(commands=['to_member'])
-def query_text(message):
+async def query_text(message):
     try:
-        if check_if_person_admin(message.from_user.id):
+        if await check_if_person_admin(message.from_user.id):
             if message.reply_to_message is None:
-                bot.send_message(message.chat.id,
+                await bot.send_message(message.chat.id,
                                  'Вызови реплай на того человека, которого ты хочешь сделать антиадмином')
                 return
             user_from_admin_id = message.reply_to_message.from_user.id
-            user_from_admin = bot.get_chat_member(message.chat.id, user_from_admin_id)
+            user_from_admin = await bot.get_chat_member(message.chat.id, user_from_admin_id)
             if user_from_admin.status not in ['administrator', 'creator']:
-                bot.send_message(message.chat.id, 'Он и так не админ!')
+                await bot.send_message(message.chat.id, 'Он и так не админ!')
             else:
-                bot.promote_chat_member(message.chat.id, user_from_admin_id, *[False] * 12)
-                bot.send_message(message.chat.id, 'Пока админ(')
+                await bot.promote_chat_member(message.chat.id, user_from_admin_id, *[False] * 12)
+                await bot.send_message(message.chat.id, 'Пока админ(')
     except:
-        something_wrong(message.chat.id)
+        await something_wrong(message.chat.id)
 
 
 @bot.message_handler(commands=['ban'])
-def query_text(message):
+async def query_text(message):
     try:
-        if check_if_person_admin(message.from_user.id):
+        if await check_if_person_admin(message.from_user.id):
             if message.reply_to_message is None:
-                bot.send_message(message.chat.id, 'Вызови реплай на того человека, которого ты хочешь забанить')
+                await bot.send_message(message.chat.id, 'Вызови реплай на того человека, которого ты хочешь забанить')
                 return
             user_ban_id = message.reply_to_message.from_user.id
-            user_ban_admin = bot.get_chat_member(message.chat.id, user_ban_id)
+            user_ban_admin = await bot.get_chat_member(message.chat.id, user_ban_id)
             if user_ban_admin.status in ['administrator', 'creator']:
-                bot.send_message(message.chat.id, 'Сначала сделай мембером, потом бань!')
+                await bot.send_message(message.chat.id, 'Сначала сделай мембером, потом бань!')
             else:
-                ban_markup = get_ban_markup(message.from_user.id, user_ban_id,
+                ban_markup = await get_ban_markup(message.from_user.id, user_ban_id,
                                             message.reply_to_message.from_user.username)
-                bot.send_message(message.chat.id, 'На сколько хочешь забанит?',
+                await bot.send_message(message.chat.id, 'На сколько хочешь забанит?',
                                  reply_markup=ban_markup)
     except:
-        something_wrong(message.chat.id)
+        await something_wrong(message.chat.id)
 
 
 @bot.message_handler(commands=['unban'])
-def query_text(message):
+async def query_text(message):
     try:
-        if check_if_person_admin(message.from_user.id):
+        if await check_if_person_admin(message.from_user.id):
             if len(message.text.split(' ')) == 1:
-                bot.send_message(message.chat.id, 'Ты должен указать юзернейм того, кого надо разбанить')
+                await bot.send_message(message.chat.id, 'Ты должен указать юзернейм того, кого надо разбанить')
                 return
             user_unban_username = message.text.split(' ')[1]
             if user_unban_username not in banned:
-                bot.send_message(message.chat.id, 'Он не забанен...')
+                await bot.send_message(message.chat.id, 'Он не забанен...')
             else:
-                unban(banned[user_unban_username])
+                await unban(banned[user_unban_username])
                 banned.pop(user_unban_username)
-                bot.send_message(message.chat.id, 'Разбанил!')
+                await bot.send_message(message.chat.id, 'Разбанил!')
     except:
-        something_wrong(message.chat.id)
+        await something_wrong(message.chat.id)
 
 
 @bot.inline_handler(func=lambda query: True)
-def query_text(query):
+async def query_text(query):
     try:
         ans = []
-        if check_if_person_admin(query.from_user.id, False):
+        if await check_if_person_admin(query.from_user.id, False):
             for num, i in enumerate(banned):
                 ans.append(types.InlineQueryResultArticle(
                     id=str(num + 2), title="@{}".format(i),
@@ -248,9 +249,8 @@ def query_text(query):
                 description="Только админы могут разбанить!",
                 input_message_content=types.InputTextMessageContent(
                     message_text='камиль крутой')))
-        bot.answer_inline_query(query.id, ans, cache_time=0)
+        await bot.answer_inline_query(query.id, ans, cache_time=0)
     except:
-        something_wrong()
+        await something_wrong()
 
-
-bot.polling(none_stop=True)
+asyncio.run(bot.polling(none_stop=True))
