@@ -1,0 +1,9 @@
+version: "3"
+
+services:
+  bot:
+    build: bot/
+    command: python3 ./main.py
+    ports:
+      - "8000:8000"
+

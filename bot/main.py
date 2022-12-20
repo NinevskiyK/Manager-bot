@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from telebot.async_telebot import AsyncTeleBot
 from telebot import types
 from datetime import datetime, timedelta
